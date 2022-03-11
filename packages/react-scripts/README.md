@@ -9,6 +9,7 @@ fork [Create React App](https://github.com/facebook/create-react-app) ，进行�
 ## 自定义配置文件
 
 ```js
+// config/index.js
 const {
   getWbpackBarPlugins,
   restOutPut,
