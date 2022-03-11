@@ -11,6 +11,7 @@
 // Do this as the first thing so that any code reading it knows the right env.
 process.env.BABEL_ENV = 'production';
 process.env.NODE_ENV = 'production';
+process.env.FAST_REFRESH = 'false';
 
 // Makes the script crash on unhandled rejections instead of silently
 // ignoring them. In the future, promise rejections that are not handled will
@@ -22,21 +23,18 @@ process.on('unhandledRejection', err => {
 // Ensure environment variables are read.
 require('../config/env');
 // 覆写 环境变量
-require("./../config/overrides/env")
+require('./../config/overrides/env');
 
-const overrides = require("./../config/overrides")
+const overrides = require('./../config/overrides');
 
-const path = require('path');
 const chalk = require('react-dev-utils/chalk');
 const fs = require('fs-extra');
-const bfj = require('bfj');
 const webpack = require('webpack');
 const configFactory = require('../config/webpack.config');
 const paths = require('../config/paths');
 const checkRequiredFiles = require('react-dev-utils/checkRequiredFiles');
 const formatWebpackMessages = require('react-dev-utils/formatWebpackMessages');
 const FileSizeReporter = require('react-dev-utils/FileSizeReporter');
-const printBuildError = require('react-dev-utils/printBuildError');
 
 const measureFileSizesBeforeBuild =
   FileSizeReporter.measureFileSizesBeforeBuild;
@@ -48,11 +46,8 @@ if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
   process.exit(1);
 }
 
-const argv = process.argv.slice(2);
-const writeStatsJson = argv.indexOf('--stats') !== -1;
-
 // Generate configuration
-const config = configFactory('production');
+const config = configFactory('development');
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
@@ -70,43 +65,8 @@ checkBrowsers(paths.appPath, isInteractive)
     // Merge with the public folder
     copyPublicFolder();
     // Start the webpack build
-    return build(previousFileSizes);
+    return watch(previousFileSizes);
   })
-  .then(
-    ({ stats, previousFileSizes, warnings }) => {
-      if (warnings.length) {
-        console.log(chalk.yellow('Compiled with warnings.\n'));
-        console.log(warnings.join('\n\n'));
-        console.log(
-          '\nSearch for the ' +
-          chalk.underline(chalk.yellow('keywords')) +
-          ' to learn more about each warning.'
-        );
-        console.log(
-          'To ignore, add ' +
-          chalk.cyan('// eslint-disable-next-line') +
-          ' to the line before.\n'
-        );
-      } else {
-        console.log(chalk.green('Compiled successfully.\n'));
-      }
-    },
-    err => {
-      const tscCompileOnError = process.env.TSC_COMPILE_ON_ERROR === 'true';
-      if (tscCompileOnError) {
-        console.log(
-          chalk.yellow(
-            'Compiled with the following type errors (you may want to check these before deploying your app):\n'
-          )
-        );
-        printBuildError(err);
-      } else {
-        console.log(chalk.red('Failed to compile.\n'));
-        printBuildError(err);
-        process.exit(1);
-      }
-    }
-  )
   .catch(err => {
     if (err && err.message) {
       console.log(err.message);
@@ -115,21 +75,28 @@ checkBrowsers(paths.appPath, isInteractive)
   });
 
 // Create the production build and print the deployment instructions.
-function build(previousFileSizes) {
-  console.log('Creating an optimized production build...');
+function watch() {
+  console.log('Creating an optimized production watch...');
 
-  let overridesConf = config
-  if (overrides.overridesWebpack && typeof overrides.overridesWebpack === "function") {
+  let overridesConf = config;
+  if (
+    overrides.overridesWebpack &&
+    typeof overrides.overridesWebpack === 'function'
+  ) {
     // 覆写 配置 不变原始的配置情况下改造
-    overridesConf = overrides.overridesWebpack(config)
+    overridesConf = overrides.overridesWebpack(config);
   }
   const compiler = webpack(overridesConf);
-  return new Promise((resolve, reject) => {
-    compiler.watch(overrides.watchOptions || {}, (err, stats) => {
+  compiler.watch(
+    overrides.watchOptions || {
+      ignored: /node_modules/,
+      aggregateTimeout: 300,
+    },
+    (err, stats) => {
       let messages;
       if (err) {
         if (!err.message) {
-          return reject(err);
+          console.log(err.message);
         }
 
         let errMessage = err.message;
@@ -156,7 +123,6 @@ function build(previousFileSizes) {
         if (messages.errors.length > 1) {
           messages.errors.length = 1;
         }
-        return reject(new Error(messages.errors.join('\n\n')));
       }
       if (
         process.env.CI &&
@@ -172,29 +138,14 @@ function build(previousFileSizes) {
           console.log(
             chalk.yellow(
               '\nTreating warnings as errors because process.env.CI = true.\n' +
-              'Most CI servers set it automatically.\n'
+                'Most CI servers set it automatically.\n'
             )
           );
-          return reject(new Error(filteredWarnings.join('\n\n')));
         }
       }
-
-      const resolveArgs = {
-        stats,
-        previousFileSizes,
-        warnings: messages.warnings,
-      };
-
-      if (writeStatsJson) {
-        return bfj
-          .write(paths.appBuild + '/bundle-stats.json', stats.toJson())
-          .then(() => resolve(resolveArgs))
-          .catch(error => reject(new Error(error)));
-      }
-
-      return resolve(resolveArgs);
-    });
-  });
+      process.exit(1);
+    }
+  );
 }
 
 function copyPublicFolder() {
