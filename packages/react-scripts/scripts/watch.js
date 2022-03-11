@@ -46,9 +46,6 @@ if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
   process.exit(1);
 }
 
-// Generate configuration
-const config = configFactory('development');
-
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
 const { checkBrowsers } = require('react-dev-utils/browsersHelper');
@@ -77,6 +74,8 @@ checkBrowsers(paths.appPath, isInteractive)
 // Create the production build and print the deployment instructions.
 function watch() {
   console.log('Creating an optimized production watch...');
+  // Generate configuration
+  const config = configFactory('development');
 
   let overridesConf = config;
   if (
