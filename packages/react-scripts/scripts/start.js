@@ -21,7 +21,8 @@ process.on('unhandledRejection', err => {
 
 // Ensure environment variables are read.
 require('../config/env');
-require("./../config/overrides/env")
+require('./../config/overrides/env');
+const overrides = require('./../config/overrides');
 
 const fs = require('fs');
 const chalk = require('react-dev-utils/chalk');
@@ -88,9 +89,19 @@ checkBrowsers(paths.appPath, isInteractive)
       return;
     }
 
-    const config = configFactory('development');
+    const configOld = configFactory('development');
     const protocol = process.env.HTTPS === 'true' ? 'https' : 'http';
     const appName = require(paths.appPackageJson).name;
+
+    // 覆写
+    let config = configOld;
+    if (
+      overrides.overridesWebpack &&
+      typeof overrides.overridesWebpack === 'function'
+    ) {
+      // 覆写 配置 不变原始的配置情况下改造
+      config = overrides.overridesWebpack(configOld);
+    }
 
     const useTypeScript = fs.existsSync(paths.appTsConfig);
     const urls = prepareUrls(
