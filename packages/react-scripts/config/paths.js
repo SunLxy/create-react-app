@@ -11,6 +11,7 @@
 const path = require('path');
 const fs = require('fs');
 const getPublicUrlOrPath = require('react-dev-utils/getPublicUrlOrPath');
+const overrides = require("./overridesWebpack")
 
 // Make sure any symlinks in the project folder are resolved:
 // https://github.com/facebook/create-react-app/issues/637
@@ -78,6 +79,7 @@ module.exports = {
   appTsBuildInfoFile: resolveApp('node_modules/.cache/tsconfig.tsbuildinfo'),
   swSrc: resolveModule(resolveApp, 'src/service-worker'),
   publicUrlOrPath,
+  ...overrides.paths
 };
 
 // @remove-on-eject-begin
@@ -108,6 +110,8 @@ module.exports = {
   ownNodeModules: resolveOwn('node_modules'), // This is empty on npm 3
   appTypeDeclarations: resolveApp('src/react-app-env.d.ts'),
   ownTypeDeclarations: resolveOwn('lib/react-app.d.ts'),
+  /** 自定义 配置 **/
+  ...overrides.paths
 };
 
 const ownPackageJson = require('../package.json');
@@ -146,6 +150,8 @@ if (
     ownNodeModules: resolveOwn('node_modules'),
     appTypeDeclarations: resolveOwn(`${templatePath}/src/react-app-env.d.ts`),
     ownTypeDeclarations: resolveOwn('lib/react-app.d.ts'),
+    /** 自定义 配置 **/
+    ...overrides.paths
   };
 }
 // @remove-on-eject-end
